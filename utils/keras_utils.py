@@ -11,13 +11,13 @@ from sklearn.preprocessing import LabelEncoder
 import warnings
 warnings.simplefilter('ignore', category=DeprecationWarning)
 
-from keras.models import Model
-from keras.layers import Permute
-from keras.optimizers import Adam
-from keras.utils import to_categorical
-from keras.preprocessing.sequence import pad_sequences
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
-from keras import backend as K
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Permute
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from tensorflow.keras import backend as K
 
 from utils.generic_utils import load_dataset_at, calculate_dataset_metrics, cutoff_choice, \
                                 cutoff_sequence
@@ -126,7 +126,10 @@ def train_model(model:Model, dataset_id, dataset_prefix, dataset_fold_id=None, e
     y_ind = le.fit_transform(y_train.ravel())
     recip_freq = len(y_train) / (len(le.classes_) *
                            np.bincount(y_ind).astype(np.float64))
-    class_weight = recip_freq[le.transform(classes)]
+    tmp_weight = recip_freq[le.transform(classes)]
+    class_weight = {}
+    for i in range(len(tmp_weight)):
+        class_weight[i] = tmp_weight[i]
 
     print("Class weights : ", class_weight)
 
@@ -158,6 +161,7 @@ def train_model(model:Model, dataset_id, dataset_prefix, dataset_fold_id=None, e
         X_test = X_test[:val_subset]
         y_test = y_test[:val_subset]
 
+    print("X_train.shape: {} | y_train.shape: {}".format(X_train.shape, y_train.shape))
     model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, callbacks=callback_list,
               class_weight=class_weight, verbose=2, validation_data=(X_test, y_test))
 
