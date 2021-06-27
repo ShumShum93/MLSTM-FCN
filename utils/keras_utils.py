@@ -9,6 +9,7 @@ mpl.style.use('seaborn-paper')
 from sklearn.preprocessing import LabelEncoder
 
 import warnings
+
 warnings.simplefilter('ignore', category=DeprecationWarning)
 
 from tensorflow.keras.models import Model
@@ -20,7 +21,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras import backend as K
 
 from utils.generic_utils import load_dataset_at, calculate_dataset_metrics, cutoff_choice, \
-                                cutoff_sequence
+    cutoff_sequence
 from utils.constants import MAX_NB_VARIABLES, MAX_TIMESTEPS_LIST
 
 
@@ -101,9 +102,10 @@ def _average_gradient_norm(model, X_train, y_train, batch_size):
     return total_norm / float(steps)
 
 
-
-def train_model(model:Model, dataset_id, dataset_prefix, dataset_fold_id=None, epochs=50, batch_size=128, val_subset=None,
-                cutoff=None, normalize_timeseries=False, learning_rate=1e-3, monitor='loss', optimization_mode='auto', compile_model=True):
+def train_model(model: Model, dataset_id, dataset_prefix, dataset_fold_id=None, epochs=50, batch_size=128,
+                val_subset=None,
+                cutoff=None, normalize_timeseries=False, learning_rate=1e-3, monitor='loss', optimization_mode='auto',
+                compile_model=True):
     X_train, y_train, X_test, y_test, is_timeseries = load_dataset_at(dataset_id,
                                                                       fold_index=dataset_fold_id,
                                                                       normalize_timeseries=normalize_timeseries)
@@ -119,13 +121,13 @@ def train_model(model:Model, dataset_id, dataset_prefix, dataset_fold_id=None, e
         if choice not in ['pre', 'post']:
             return
         else:
+            print("Cutoff Choice: {}".format(choice))
             X_train, X_test = cutoff_sequence(X_train, X_test, choice, dataset_id, max_nb_variables)
 
     classes = np.unique(y_train)
     le = LabelEncoder()
     y_ind = le.fit_transform(y_train.ravel())
-    recip_freq = len(y_train) / (len(le.classes_) *
-                           np.bincount(y_ind).astype(np.float64))
+    recip_freq = len(y_train) / (len(le.classes_) * np.bincount(y_ind).astype(np.float64))
     tmp_weight = recip_freq[le.transform(classes)]
     class_weight = {}
     for i in range(len(tmp_weight)):
@@ -161,7 +163,11 @@ def train_model(model:Model, dataset_id, dataset_prefix, dataset_fold_id=None, e
         X_test = X_test[:val_subset]
         y_test = y_test[:val_subset]
 
+    print("Is Time Series: {}".format(is_timeseries))
     print("X_train.shape: {} | y_train.shape: {}".format(X_train.shape, y_train.shape))
+    print(X_train[0])
+    print()
+    print(y_train[0])
     model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, callbacks=callback_list,
               class_weight=class_weight, verbose=2, validation_data=(X_test, y_test))
 
@@ -209,21 +215,22 @@ def evaluate_model(model:Model, dataset_id, dataset_prefix, dataset_fold_id=None
 
     return accuracy, loss
 
+
 def set_trainable(layer, value):
-   layer.trainable = value
+    layer.trainable = value
 
-   # case: container
-   if hasattr(layer, 'layers'):
-       for l in layer.layers:
-           set_trainable(l, value)
+    # case: container
+    if hasattr(layer, 'layers'):
+        for l in layer.layers:
+            set_trainable(l, value)
 
-   # case: wrapper (which is a case not covered by the PR)
-   if hasattr(layer, 'layer'):
+    # case: wrapper (which is a case not covered by the PR)
+    if hasattr(layer, 'layer'):
         set_trainable(layer.layer, value)
 
 
-def compute_average_gradient_norm(model:Model, dataset_id, dataset_fold_id=None, batch_size=128,
-                cutoff=None, normalize_timeseries=False, learning_rate=1e-3):
+def compute_average_gradient_norm(model: Model, dataset_id, dataset_fold_id=None, batch_size=128,
+                                  cutoff=None, normalize_timeseries=False, learning_rate=1e-3):
     X_train, y_train, X_test, y_test, is_timeseries = load_dataset_at(dataset_id,
                                                                       fold_index=dataset_fold_id,
                                                                       normalize_timeseries=normalize_timeseries)
@@ -288,5 +295,3 @@ def f1_score(y_true, y_pred):
     recall = recall(y_true, y_pred)
 
     return 2 * ((precision * recall) / (precision + recall))
-
-
